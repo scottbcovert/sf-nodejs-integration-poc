@@ -1,9 +1,56 @@
 const express = require('express');
 const path = require('path');
-
+const jsforce = require('jsforce');
+const dotenv = require('dotenv').config();
 const app = express();
+let oauth2 = new jsforce.OAuth2({
+    loginUrl : process.env.URL || 'https://login.salesforce.com',
+    clientId : process.env.CLIENTID,
+    clientSecret : process.env.CLIENTSECRET,
+    redirectUri : process.env.REDIRECTURL || 'http://localhost:5000/oauth2/callback'
+});
+let authorizedOperation = function(req, res, returnTo, callback) {
+    if (!req.session) {req.session = {}};
+    if (req.session.accessToken) {
+        var conn = new jsforce.Connection({
+            oauth2 : oauth2,
+            accessToken : req.session.accessToken,
+            refreshToken : req.session.refreshToken,
+            instanceUrl : req.session.instanceUrl,
+        });
+        conn.on('refresh', function(accessToken, res){
+            req.session.accessToken = accessToken;
+        });
+        callback(conn);
+    }
+    else {
+        req.session.returnto = returnTo;
+        res.redirect(oauth2.getAuthorizationUrl({ scope : 'full refresh_token offline_access' }));
+    }
+}
 
 app.use(express.static(path.join(__dirname, 'client/build')));
+
+app.get('/oauth2/callback', function(req, res) {
+    let code = req.params.code;
+    let conn = new jsforce.Connection({ oauth2 : oauth2});
+    conn.authorize(code, function(err, userInfo) {
+        if (err) { return console.error(err); }
+        req.session.accessToken = conn.accessToken;
+        req.session.refreshToken = conn.refreshToken;
+        req.session.instanceUrl = conn.instanceUrl;
+        res.redirect(req.session.returnto || '/');
+    });
+});
+
+app.get('/cases', (req, res) => {
+    authorizedOperation(req,res,'/cases', function(conn) {
+        conn.query('SELECT Id, CaseNumber FROM Case', function(err, result) {
+            if (err) { return console.error(err); }
+            res.send(result.records);
+        });
+    });
+});
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname+'/client/build/index.html'));
