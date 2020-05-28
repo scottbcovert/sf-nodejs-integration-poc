@@ -1,0 +1,16 @@
+{
+  "name": "sf-nodejs-integration-poc",
+  "version": "1.0.0",
+  "description": "Proof of concept connecting a NodeJS app with Salesforce",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "Scott Covert",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "jsforce": "^1.9.3"
+  }
+}
