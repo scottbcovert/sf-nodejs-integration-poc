@@ -26,8 +26,8 @@ This serves as a PoC to demonstrate how a NodeJS app can be setup to integrate w
 
 ## Built With
 
-* [React]() - Client
-* [Express]() - Server
+* [React](https://github.com/facebook/create-react-app#readme) - Client
+* [Express](https://expressjs.com/) - Server
 * [JSForce](https://jsforce.github.io/) - Javascript library for interacting with Salesforce APIs
 
 ## License
