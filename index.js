@@ -1,4 +1,5 @@
 const express = require('express');
+const session = require('express-session');
 const path = require('path');
 const jsforce = require('jsforce');
 const dotenv = require('dotenv').config();
@@ -10,7 +11,6 @@ let oauth2 = new jsforce.OAuth2({
     redirectUri : process.env.REDIRECTURL || 'http://localhost:5000/oauth2/callback'
 });
 let authorizedOperation = function(req, res, returnTo, callback) {
-    if (!req.session) {req.session = {}};
     if (req.session.accessToken) {
         var conn = new jsforce.Connection({
             oauth2 : oauth2,
@@ -25,14 +25,28 @@ let authorizedOperation = function(req, res, returnTo, callback) {
     }
     else {
         req.session.returnto = returnTo;
-        res.redirect(oauth2.getAuthorizationUrl({ scope : 'full refresh_token offline_access' }));
+        res.set({ 'X-Redirect': oauth2.getAuthorizationUrl({ scope : 'full refresh_token offline_access' }) });
+        res.sendStatus(200);
     }
 }
+
+
+
+app.use(session({
+    secret: process.env.SECRET || 'secretsarenofun',
+    name: 'cookie4sfdc',
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+        secure: false,
+        maxAge: 6000000
+    }
+}));
 
 app.use(express.static(path.join(__dirname, 'client/build')));
 
 app.get('/oauth2/callback', function(req, res) {
-    let code = req.params.code;
+    let code = req.query.code;
     let conn = new jsforce.Connection({ oauth2 : oauth2});
     conn.authorize(code, function(err, userInfo) {
         if (err) { return console.error(err); }
@@ -44,7 +58,7 @@ app.get('/oauth2/callback', function(req, res) {
 });
 
 app.get('/cases', (req, res) => {
-    authorizedOperation(req,res,'/cases', function(conn) {
+    authorizedOperation(req, res, req.headers.referer, function(conn) {
         conn.query('SELECT Id, CaseNumber FROM Case', function(err, result) {
             if (err) { return console.error(err); }
             res.send(result.records);
