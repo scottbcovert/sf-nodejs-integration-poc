@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const bodyParser = require('body-parser');
 const path = require('path');
 const jsforce = require('jsforce');
 const dotenv = require('dotenv').config();
@@ -30,7 +31,7 @@ let authorizedOperation = function(req, res, returnTo, callback) {
     }
 }
 
-
+app.use(bodyParser.json())
 
 app.use(session({
     secret: process.env.SECRET || 'secretsarenofun',
@@ -59,7 +60,7 @@ app.get('/oauth2/callback', function(req, res) {
 
 app.get('/cases', (req, res) => {
     authorizedOperation(req, res, req.headers.referer, function(conn) {
-        conn.query('SELECT Id, CaseNumber FROM Case', function(err, result) {
+        conn.query('SELECT Id, CaseNumber, IsEscalated FROM Case', function(err, result) {
             if (err) { return console.error(err); }
             res.send(result.records);
         });
@@ -68,6 +69,18 @@ app.get('/cases', (req, res) => {
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname+'/client/build/index.html'));
+});
+
+app.post('/case', (req, res) => {
+    authorizedOperation(req, res, req.headers.referer, function(conn) {
+        conn.sobject('Case').update({
+            Id: req.body.id,
+            IsEscalated: req.body.isEscalated
+        }, function(err, result) {
+            if (err) { return console.error(err); }
+            res.sendStatus(200);
+        });
+    });
 });
 
 const port = process.env.PORT || 5000;
