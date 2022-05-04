@@ -58,9 +58,9 @@ app.get('/oauth2/callback', function(req, res) {
     });
 });
 
-app.get('/cases', (req, res) => {
+app.get('/leads', (req, res) => {
     authorizedOperation(req, res, req.headers.referer, function(conn) {
-        conn.query('SELECT Id, CaseNumber, IsEscalated FROM Case', function(err, result) {
+        conn.query('SELECT Id, FirstName, LastName, Status FROM Lead', function(err, result) {
             if (err) { return console.error(err); }
             res.send(result.records);
         });
@@ -71,11 +71,11 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname+'/client/build/index.html'));
 });
 
-app.post('/case', (req, res) => {
+app.post('/lead', (req, res) => {
     authorizedOperation(req, res, req.headers.referer, function(conn) {
-        conn.sobject('Case').update({
+        conn.sobject('Lead').update({
             Id: req.body.id,
-            IsEscalated: req.body.isEscalated
+            Status: req.body.status
         }, function(err, result) {
             if (err) { return console.error(err); }
             res.sendStatus(200);
