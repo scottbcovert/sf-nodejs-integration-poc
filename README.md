@@ -29,7 +29,7 @@ This serves as a PoC to demonstrate how a NodeJS app can be setup to integrate w
 
 ## Resources
 
-1. [Guided walkthrough](https://www.youtube.com/watch?v=c5OZZsVkOKY)
+* [Guided walkthrough](https://www.youtube.com/watch?v=c5OZZsVkOKY)
 
 ## Built With
 
