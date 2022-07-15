@@ -24,9 +24,12 @@ This serves as a PoC to demonstrate how a NodeJS app can be setup to integrate w
 1. [Setup Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli)
 2. Run `heroku create`
 3. Run `git push heroku master`
-4. Run `heroku config:set CLIENTID=*YOUR_CONSUMER_KEY* CLIENTSECRET=*YOUR_CONSUMER_SECRET* REDIRECTURL=https://*your-heroku-instance*.herokuapp.com/oauth2/callback SECRET=*YOUR_COOKIE_SECRET*`
-5. Update your Salesforce connected app's Callback URL list to include `https://your-heroku-instance.herokuapp.com/oauth2/callback`
-6. To integrate with a Salesforce sandbox run `heroku config:set URL=htps://test.salesforce.com`
+4. Run `heroku config:set CLIENT_ID=*YOUR_CONSUMER_KEY* USERNAME=*YOUR_DESIRED_USERNAME* PRIVATE_KEY=*YOUR_PRIVATE_KEY*` Keep in mind that the user will need to first run through the OAuth2 web flow a *single* time by visiting LOGIN_URL/services/oauth2/authorize?response_type=token&client_id=CLIENT_ID&redirect_uri=LOGIN_URL/services/oauth2/success - note you'll need to replace `LOGIN_URL` and `CLIENT_ID` in that URL
+5. To integrate with a Salesforce sandbox run `heroku config:set LOGIN_URL=htps://test.salesforce.com`
+
+## Resources
+
+1. [Guided walkthrough](https://www.youtube.com/watch?v=c5OZZsVkOKY)
 
 ## Built With
 
