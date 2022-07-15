@@ -14,7 +14,7 @@ let getAccessToken = async function(callback) {
         let jwt = await getToken({
             iss: process.env.CLIENT_ID,
             sub: process.env.USERNAME,
-            aud: process.env.LOGIN_URL,
+            aud: process.env.LOGIN_URL || 'https://login.salesforce.com',
             privateKey: process.env.PRIVATE_KEY
         });
         callback(null, jwt);
