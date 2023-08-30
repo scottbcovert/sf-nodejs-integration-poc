@@ -1,3 +1,4 @@
 [submodule "client"]
 	path = client
 	url = https://github.com/scottbcovert/sf-nodejs-react-client
+	branch = users-poc
