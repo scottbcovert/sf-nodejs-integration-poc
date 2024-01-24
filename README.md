@@ -7,7 +7,7 @@ This serves as a PoC to demonstrate how a NodeJS app can be setup to integrate w
 1. Clone repo (along with submodule) by running `git clone --recursive https://github.com/scottbcovert/sf-nodejs-integration-poc`
 2. Run `npm install`
 3. [Create a connected app](https://help.salesforce.com/articleView?id=connected_app_create.htm&type=5) in your Salesforce org
-4. Set the OAuth scope for your connected app to include `full`, `refresh_token`, & `offline_access`
+4. Set the OAuth scope for your connected app to include `api`, `id`, & `refresh_token`
 5. Set your Callback URL to be `http://localhost:5000/oauth2/callback`
 6. Copy the contents of the `.env.sample` file into a local `.env` file, replacing the `CLIENTID` & `CLIENTSECRET` values with your connected app's consumer key and secret
 7. To integrate with a Salesforce sandbox change the `URL` value to `https://test.salesforce.com`
