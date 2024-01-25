@@ -15,7 +15,7 @@ let oauth2Creds = {
     redirectUri : process.env.REDIRECT_URL || 'http://localhost:5000/oauth2/callback'
 }
 
-let authenticateWithSalesforce = async function(req, res, returnTo, callback) {
+let authenticateWithSalesforce = function(req, res, returnTo, callback) {
     if (req.session.accessToken) {
         var conn = new jsforce.Connection({
             oauth2 : oauth2,
@@ -26,42 +26,39 @@ let authenticateWithSalesforce = async function(req, res, returnTo, callback) {
         conn.on('refresh', function(accessToken, res){
             req.session.accessToken = accessToken;
         });
-        let sfCustomRestUrl = req.query.source + '/services/apexrest';
-        sfCustomRestUrl += process.env.NAMESPACE
-            ? '/' + process.env.NAMESPACE
-            : '';
-        sfCustomRestUrl += '/v1.0/oauth';
-        const response = await fetch(sfCustomRestUrl, {
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + req.session.accessToken
-            },
-            body: JSON.stringify({
-                access_token: req.session.accessToken,
-                domain: req.query.target,
-                user_id: req.session.userInfo.id,
-                instance_url: req.session.instanceUrl,
-                organization_id: req.session.userInfo.organizationId,
-                refresh_token: req.session.refreshToken,
-                scope,
-                url: req.session.userInfo.url
-            })
-        });
-        const sfResponse = await response.json();
-        if (sfResponse.error || sfResponse.errorCode) {
-            return console.error(sfResponse.error || sfResponse.errorCode + ': ' + sfResponse.message);
+        if (req.session.instanceUrl === req.query.source) {
+            // We have completed the first step of authenticating against the source org
+            req.session.source_accessToken = req.session.accessToken;
+            if (req.query.source !== req.query.target) {
+                // Since the source org differs from the target org we must now also authenticate against the target org
+                req.session.returnto = returnTo;
+                const code_verifier = base64url.encode(crypto.randomBytes(32));
+                req.session.code_verifier = code_verifier;
+                const code_challenge = base64url.encode(crypto.createHash('sha256').update(code_verifier).digest());
+                const state = base64url.encode(crypto.randomBytes(32));
+                req.session.state = state;
+                oauth2 = new jsforce.OAuth2({
+                    loginUrl : req.query.target,
+                    clientId : oauth2Creds.clientId,
+                    clientSecret : oauth2Creds.clientSecret,
+                    redirectUri : oauth2Creds.redirectUri
+                });
+                const authUrl = oauth2.getAuthorizationUrl({ code_challenge, scope, state });
+                res.set({ 'X-Redirect': authUrl });
+                res.sendStatus(200);
+                return;
+            }
         }
-        // Clear out stateful req.session params to force authorization each time
-        req.session.accessToken = null;
-        req.session.refreshToken = null;
-        req.session.instanceUrl = null;
-        req.session.returnto = null;
-        req.session.code_verifier = null;
-        req.session.state = null;
-        req.session.userInfo = null;
-        callback();
+        conn.query(`SELECT Id, Email, Name, Username FROM User WHERE Id = '${req.session.userInfo.id}'`, function(err, result) {
+            if (err) { return console.error(err); }
+            const {records} = result;
+            const user = records[0];
+            req.session.userInfo.user_id = user.Id;
+            req.session.userInfo.user_username = user.Username
+            req.session.userInfo.user_display_name = user.Name
+            req.session.userInfo.user_email = user.Email
+            mirrorTokenInfoBackToSalesforce(req, callback);
+        });
     }
     else {
         req.session.returnto = returnTo;
@@ -74,6 +71,45 @@ let authenticateWithSalesforce = async function(req, res, returnTo, callback) {
         res.set({ 'X-Redirect': authUrl });
         res.sendStatus(200);
     }
+}
+
+let mirrorTokenInfoBackToSalesforce = async function(req, callback) {
+    let sfCustomRestUrl = req.query.source + '/services/apexrest';
+        sfCustomRestUrl += process.env.NAMESPACE
+            ? '/' + process.env.NAMESPACE
+            : '';
+        sfCustomRestUrl += '/v1.0/oauth';
+    const response = await fetch(sfCustomRestUrl, {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + req.session.source_accessToken
+        },
+        body: JSON.stringify({
+            access_token: req.session.accessToken,
+            domain: req.query.target,
+            user_id: req.session.userInfo.id,
+            instance_url: req.session.instanceUrl,
+            organization_id: req.session.userInfo.organizationId,
+            refresh_token: req.session.refreshToken,
+            scope,
+            url: req.session.userInfo.url
+        })
+    });
+    const sfResponse = await response.json();
+    if (sfResponse.error || sfResponse.errorCode) {
+        return console.error(sfResponse.error || sfResponse.errorCode + ': ' + sfResponse.message);
+    }
+    // Clear out stateful req.session params to force authorization each time
+    req.session.accessToken = null;
+    req.session.refreshToken = null;
+    req.session.instanceUrl = null;
+    req.session.returnto = null;
+    req.session.code_verifier = null;
+    req.session.state = null;
+    req.session.userInfo = null;
+    callback();
 }
 
 app.use(bodyParser.json())
@@ -110,8 +146,14 @@ app.get('/oauth2/callback', function(req, res) {
 });
 
 app.get('/tokens', (req, res) => {
+    if (!req.query.source || !req.query.target) {
+        res.send({
+            authenticated: false
+        });
+        return;
+    }
     oauth2 = new jsforce.OAuth2({
-        loginUrl : req.query.target,
+        loginUrl : req.query.source,
         clientId : oauth2Creds.clientId,
         clientSecret : oauth2Creds.clientSecret,
         redirectUri : oauth2Creds.redirectUri
