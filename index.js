@@ -89,7 +89,10 @@ let mirrorTokenInfoBackToSalesforce = async function(req, callback) {
         body: JSON.stringify({
             access_token: req.session.accessToken,
             domain: req.query.target,
-            user_id: req.session.userInfo.id,
+            user_id: req.session.userInfo.user_id,
+            user_username: req.session.userInfo.user_username,
+            user_display_name: req.session.userInfo.user_display_name,
+            user_email: req.session.userInfo.user_email,
             instance_url: req.session.instanceUrl,
             organization_id: req.session.userInfo.organizationId,
             refresh_token: req.session.refreshToken,
