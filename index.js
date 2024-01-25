@@ -26,8 +26,7 @@ let authenticateWithSalesforce = async function(req, res, returnTo, callback) {
         conn.on('refresh', function(accessToken, res){
             req.session.accessToken = accessToken;
         });
-        // ToDo: Send conn info to Salesforce server via custom Apex REST endpoint
-        let sfCustomRestUrl = req.query.domain + '/services/apexrest';
+        let sfCustomRestUrl = req.query.source + '/services/apexrest';
         sfCustomRestUrl += process.env.NAMESPACE
             ? '/' + process.env.NAMESPACE
             : '';
@@ -41,7 +40,7 @@ let authenticateWithSalesforce = async function(req, res, returnTo, callback) {
             },
             body: JSON.stringify({
                 access_token: req.session.accessToken,
-                domain: req.query.domain,
+                domain: req.query.target,
                 user_id: req.session.userInfo.id,
                 instance_url: req.session.instanceUrl,
                 organization_id: req.session.userInfo.organizationId,
@@ -112,7 +111,7 @@ app.get('/oauth2/callback', function(req, res) {
 
 app.get('/tokens', (req, res) => {
     oauth2 = new jsforce.OAuth2({
-        loginUrl : req.query.domain,
+        loginUrl : req.query.target,
         clientId : oauth2Creds.clientId,
         clientSecret : oauth2Creds.clientSecret,
         redirectUri : oauth2Creds.redirectUri
@@ -120,7 +119,7 @@ app.get('/tokens', (req, res) => {
     authenticateWithSalesforce(req, res, req.headers.referer, () => {
         res.send({
             authenticated: true,
-            domain: req.query.domain            
+            target: req.query.target
         });
     });
 });
