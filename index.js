@@ -98,6 +98,7 @@ let mirrorTokenInfoBackToSalesforce = async function(req, callback) {
             organization_id: req.session.userInfo.organizationId,
             refresh_token: req.session.refreshToken,
             scope,
+            source_access_token: req.session.source_accessToken,
             url: req.session.userInfo.url
         })
     });
