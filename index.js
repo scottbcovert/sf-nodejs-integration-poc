@@ -88,7 +88,7 @@ let mirrorTokenInfoBackToSalesforce = async function(req, callback) {
         },
         body: JSON.stringify({
             access_token: req.session.accessToken,
-            cmdt_upsert_method: req.query.cmdtUpsertMethod,
+            creds_upsert_method: req.query.credsUpsertMethod,
             domain: req.query.target,
             user_id: req.session.userInfo.user_id,
             user_username: req.session.userInfo.user_username,
@@ -98,7 +98,6 @@ let mirrorTokenInfoBackToSalesforce = async function(req, callback) {
             organization_id: req.session.userInfo.organizationId,
             refresh_token: req.session.refreshToken,
             scope,
-            source_access_token: req.session.source_accessToken,
             url: req.session.userInfo.url
         })
     });
